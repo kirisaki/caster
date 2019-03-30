@@ -20,6 +20,9 @@ jobs:
             - ghc-8.6.3-{{ checksum "caster.cabal" }}
       - run:
           name: Install dependencies
+          command: cabal new-update
+      - run:
+          name: Install dependencies
           command: cabal new-install
       - run:
           name: Run tests
