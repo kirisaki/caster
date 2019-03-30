@@ -27,7 +27,7 @@ jobs:
       - save_cache:
           name: Save packagess
           key: ghc-8.6.3-{{ checksum "caster.cabal" }}
-        <<: *cache_paths
+          <<: *cache_paths
 
 
 
