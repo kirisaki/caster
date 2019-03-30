@@ -3,7 +3,7 @@ version:             0.0.1
 synopsis:            Multicast, thread-safe, and not slow logger.
 description:         Please see the README on GitHub at <https://github.com/kirisaki/caster#readme>
 homepage:            https://github.com/kirisaki/caster#readme
-homepage:            https://github.com/kirisaki/caster/issues
+bug-reports:         https://github.com/kirisaki/caster/issues
 license:             BSD3
 license-file:        LICENSE
 author:              Akihito KIRISAKI
@@ -39,8 +39,9 @@ test-suite test
   hs-source-dirs:
     test
   main-is:
-    Main.hs
+    Driver.hs
   build-depends:
       base >= 4 && < 5
     , tasty
+    , tasty-discover
     , caster
