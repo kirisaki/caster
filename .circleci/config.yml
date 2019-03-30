@@ -2,10 +2,10 @@ version: 2
 
 aliases:
   - &cache_paths
-  paths:
-    - ~/.cabal/packagess
-    - ~/.cabal/store
-    - ~/.ghc/
+    paths:
+      - ~/.cabal/packagess
+      - ~/.cabal/store
+      - ~/.ghc/
 
 jobs:
   test-8.6.3:
@@ -36,4 +36,4 @@ workflows:
   test-check:
     jobs:
       - test-8.6.3
-      
+
