@@ -41,6 +41,7 @@ module System.Log.Caster
   , ToBuilder(..)
   , fix
   , ($:)
+  , (<:>)
   ) where
 
 

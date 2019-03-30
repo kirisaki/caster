@@ -16,7 +16,6 @@ cabal-version:       >=1.10
 
 library
   exposed-modules: System.Log.Caster
-  -- other-modules:
   -- other-extensions:
   build-depends:       base >=4.11 && <4.12
                      , bytestring
@@ -35,16 +34,19 @@ library
                     , ExistentialQuantification
 
 test-suite test
-  default-language:
-    Haskell2010
-  type:
-    exitcode-stdio-1.0
+  type: exitcode-stdio-1.0
+  main-is: Driver.hs
+  other-modules:
+                CasterTest
   hs-source-dirs:
-    test
-  main-is:
-    Driver.hs
+                 test
   build-depends:
-      base >= 4 && < 5
-    , tasty
-    , tasty-discover
-    , caster
+                base >= 4 && < 5
+              , caster
+              , bytestring
+              , text
+              , fast-builder
+              , quickcheck-instances
+              , tasty
+              , tasty-discover
+              , tasty-quickcheck
