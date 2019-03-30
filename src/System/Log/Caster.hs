@@ -4,27 +4,65 @@ Description : Multicast, thread-safe, and not slow logger.
 Copyright   : (c) Akihito KIRISAKI
 
 License     : BSD3
-Maintainer  :  Akihito KIRISAKI
+Maintainer  : Akihito KIRISAKI
 Stability   : experimental
 -}
 {-# LANGUAGE UndecidableInstances #-}
-module System.Log.Caster where
+module System.Log.Caster
+  ( -- * Basics
+    LogMsg
+  , broadcastLog
+  , LogQueue
+  , newLogQueue
+  , LogChan
+  , newLogChan
+  , Formatter
+  , Listener
+  , relayLog
+  -- * Listeners
+  , stdoutListener
+  , stdoutListenerWith
+  , handleListener
+  , handleListenerFlush
+  -- * Formatter
+  , defaultFormatter
+  -- * Log levels
+  , LogLevel(..)
+  , logAs
+  , debug
+  , info
+  , notice
+  , warn
+  , err
+  , critical
+  , alert
+  , emergency
+  -- * Useful string class and operator
+  , ToBuilder(..)
+  , fix
+  , ($:)
+  ) where
 
+
+import           Control.Concurrent.STM
+import           Control.Monad
+import           Control.Monad.IO.Class      (MonadIO (..))
 import qualified Data.ByteString             as SBS
 import qualified Data.ByteString.Builder     as BB
 import qualified Data.ByteString.FastBuilder as FB
 import qualified Data.ByteString.Lazy        as LBS
-import           Data.String                 (IsString (..))
 import qualified Data.Text                   as ST
 import qualified Data.Text.Encoding          as STE
 import qualified Data.Text.Lazy              as LT
 import qualified Data.Text.Lazy.Encoding     as LTE
-
-log = undefined
+import           Data.UnixTime               (Format, UnixTime (..),
+                                              formatUnixTime, getUnixTime)
+import           GHC.IO.Unsafe               (unsafePerformIO)
+import           System.IO                   (Handle, hFlush, stdout)
 
 -- | Types which are able to be converted into @'FB.Builder' Builder@
 --   @toBuilde@ encodes @String@ and @Text@ as utf-8.
-class IsString a => ToBuilder a where
+class ToBuilder a where
   toBuilder :: a -> FB.Builder
 
 instance ToBuilder FB.Builder where
@@ -48,11 +86,144 @@ instance ToBuilder LBS.ByteString where
 instance ToBuilder BB.Builder where
   toBuilder = FB.byteString . LBS.toStrict . BB.toLazyByteString
 
-instance {-# OVERLAPPABLE #-} (Show a, IsString a) => ToBuilder a where
-  toBuilder = toBuilder . show
+instance {-# OVERLAPPABLE #-} Show a => ToBuilder a where
+  toBuilder = FB.stringUtf8 . show
 
 -- | If you turn @OverloadedStrings@ extension on, GHC can't deduce the type of string literal.
---   This operator fix the type to @'FB.Builder' Builder@
+--   This function fix the type to @'FB.Builder' Builder@ without type annotation.
+fix :: FB.Builder -> FB.Builder
+fix = id
+
+-- | Infix version of @fix@.
 infixr 0 $:
-($:) :: (FB.Builder -> b) -> FB.Builder -> b
+($:) :: ToBuilder b => (FB.Builder -> b) -> FB.Builder -> b
 ($:) = ($)
+
+-- | Concat @ToBuilder@ strings as @'FB.Builder' Builder@.
+infixr 6 <:>
+(<:>) :: (ToBuilder a, ToBuilder b) => a -> b -> FB.Builder
+a <:> b = toBuilder a <> toBuilder b
+
+-- | Logging level. This is matched to syslog.
+data LogLevel
+  = LogDebug
+  | LogInfo
+  | LogNotice
+  | LogWarn
+  | LogError
+  | LogCritical
+  | LogAlert
+  | LogEmergency
+  deriving (Show, Eq, Ord)
+
+-- | Log message.
+data LogMsg = LogMsg
+  { logMsgLevel   :: LogLevel
+  , logMsgTime    :: UnixTime
+  , logMsgBuilder :: FB.Builder
+  }
+
+-- | Queue of @LogMsg@.
+newtype LogQueue = LogQueue (TQueue LogMsg)
+
+-- | Channel of @LogMsg@.
+newtype LogChan = LogChan (TChan LogMsg)
+
+-- | Make new @LogQueue@
+newLogQueue :: IO LogQueue
+newLogQueue = LogQueue <$> newTQueueIO
+
+-- | Make new @LogChan@.
+newLogChan :: IO LogChan
+newLogChan = LogChan <$> newBroadcastTChanIO
+
+-- | Connect @LogQueue@ and @TChan@ @LogMsg@.
+broadcastLog :: LogQueue -> LogChan -> IO ()
+broadcastLog (LogQueue q) (LogChan c) =  forever $
+  atomically $ readTQueue q >>= writeTChan c
+
+-- | Formatter.
+type Formatter = LogMsg -> FB.Builder
+
+-- | IO function takes @LogMsg@.
+type Listener = LogMsg -> IO ()
+
+-- | Listen @LogChan@ and give the @LogMsg@ to given @Listener@.
+relayLog :: LogChan -> LogLevel -> Listener -> IO ()
+relayLog (LogChan bchan) logLevel listener = do
+  chan <- atomically $ dupTChan bchan
+  forever $ do
+    msg <- atomically $ readTChan chan
+    when (logMsgLevel msg >= logLevel) $ listener msg
+
+-- | Make @Listener@ from @Handle@
+handleListener :: Formatter -> Handle -> Listener
+handleListener f h = FB.hPutBuilder h . f
+
+-- | Make @Listener@ flushing buffer after getting @LogMsg@
+handleListenerFlush :: Formatter -> Handle -> Listener
+handleListenerFlush f h msg = FB.hPutBuilder h (f msg) >> hFlush h
+
+-- | Stdout listener with @Formatter@.
+stdoutListenerWith :: Formatter -> Listener
+stdoutListenerWith f = handleListenerFlush f stdout
+
+-- | Stdout listener.
+stdoutListener :: Listener
+stdoutListener = stdoutListenerWith defaultFormatter
+
+
+-- | Default log formatter.
+defaultFormatter :: Formatter
+defaultFormatter (LogMsg lev ut str) =
+  formatTime ut <> " - [" <> logLevelToBuilder lev <> "] " <> str <> "\n"
+
+logLevelToBuilder :: LogLevel -> FB.Builder
+logLevelToBuilder = \case
+  LogDebug -> "DEBUG"
+  LogInfo  -> "INFO"
+  LogNotice  -> "NOTICE"
+  LogWarn  -> "WARN"
+  LogError -> "ERROR"
+  LogCritical -> "CRITICAL"
+  LogAlert -> "ALERT"
+  LogEmergency -> "EMERGEBCY"
+
+{-# NOINLINE formatTime #-}
+formatTime :: UnixTime -> FB.Builder
+formatTime ut =
+  let
+    ut' = FB.byteString . unsafePerformIO $ formatUnixTime "%Y-%m-$d %T" ut
+    utMilli = FB.string7 . tail . show $ utMicroSeconds ut `div` 1000 + 1000
+  in
+    ut' <> "." <> utMilli
+
+-- | Push a message to @LogQueue@.
+logAs :: (MonadIO m, ToBuilder s) => LogQueue -> LogLevel -> s -> m ()
+logAs (LogQueue q) l s = liftIO $ do
+  ut <- getUnixTime
+  atomically $ writeTQueue q (LogMsg l ut (toBuilder s))
+
+debug :: (MonadIO m, ToBuilder s) => LogQueue -> s -> m ()
+debug q = logAs q LogDebug
+
+info :: (MonadIO m, ToBuilder s) => LogQueue -> s -> m ()
+info q = logAs q LogInfo
+
+notice :: (MonadIO m, ToBuilder s) => LogQueue -> s -> m ()
+notice q = logAs q LogNotice
+
+warn :: (MonadIO m, ToBuilder s) => LogQueue -> s -> m ()
+warn q = logAs q LogWarn
+
+err :: (MonadIO m, ToBuilder s) => LogQueue -> s -> m ()
+err q = logAs q LogError
+
+critical :: (MonadIO m, ToBuilder s) => LogQueue -> s -> m ()
+critical q = logAs q LogCritical
+
+alert :: (MonadIO m, ToBuilder s) => LogQueue -> s -> m ()
+alert q = logAs q LogAlert
+
+emergency :: (MonadIO m, ToBuilder s) => LogQueue -> s -> m ()
+emergency q = logAs q LogEmergency
