@@ -25,6 +25,9 @@ jobs:
           name: Install dependencies
           command: cabal new-install
       - run:
+          name: Install tasty-discover
+          command: cabal new-install tasty-discover
+      - run:
           name: Run tests
           command: cabal new-test
       - save_cache:
