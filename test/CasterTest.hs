@@ -7,6 +7,7 @@ import qualified Data.ByteString             as SBS
 import qualified Data.ByteString.Builder     as BB
 import qualified Data.ByteString.FastBuilder as FB
 import qualified Data.ByteString.Lazy        as LBS
+import           Data.Semigroup
 import qualified Data.Text                   as ST
 import qualified Data.Text.Encoding          as STE
 import qualified Data.Text.Lazy              as LT
