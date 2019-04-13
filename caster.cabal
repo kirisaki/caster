@@ -1,6 +1,6 @@
 name:                caster
-version:             0.0.1
-synopsis:            Multicast, thread-safe, and not slow logger.
+version:             0.0.1.0
+synopsis:            Multicast, thread-safe, and fast logger.
 description:         Please see the README on GitHub at <https://github.com/kirisaki/caster#readme>
 homepage:            https://github.com/kirisaki/caster#readme
 bug-reports:         https://github.com/kirisaki/caster/issues

@@ -10,11 +10,11 @@ Stability   : experimental
 {-# LANGUAGE UndecidableInstances #-}
 module System.Log.Caster
   ( -- * Basics
-    LogMsg
+    LogMsg(..)
   , broadcastLog
-  , LogQueue
+  , LogQueue(..)
   , newLogQueue
-  , LogChan
+  , LogChan(..)
   , newLogChan
   , Formatter
   , Listener
@@ -106,7 +106,7 @@ infixr 6 <:>
 (<:>) :: (ToBuilder a, ToBuilder b) => a -> b -> FB.Builder
 a <:> b = toBuilder a <> toBuilder b
 
--- | Logging level. This is matched to syslog.
+-- |Log levels. These are matched to syslog.
 data LogLevel
   = LogDebug
   | LogInfo
