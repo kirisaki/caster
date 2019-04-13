@@ -91,7 +91,7 @@ import System.Log.Caster
 
 type UseLogger = Given LogQueue
 
-useLoger :: UseLogger => LogQueue
+useLogger :: UseLogger => LogQueue
 useLogger = given
 
 someIO :: UseLogger => IO ()
