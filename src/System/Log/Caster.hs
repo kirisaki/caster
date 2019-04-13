@@ -195,7 +195,7 @@ logLevelToBuilder = \case
 formatTime :: UnixTime -> FB.Builder
 formatTime ut =
   let
-    ut' = FB.byteString . unsafePerformIO $ formatUnixTime "%Y-%m-$d %T" ut
+    ut' = FB.byteString . unsafePerformIO $ formatUnixTime "%Y-%m-d %T" ut
     utMilli = FB.string7 . tail . show $ utMicroSeconds ut `div` 1000 + 1000
   in
     ut' <> "." <> utMilli

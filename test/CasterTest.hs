@@ -1,8 +1,15 @@
+{-# LANGUAGE BangPatterns #-}
 module CasterTest where
 
 import           System.Log.Caster
 import           Test.QuickCheck.Instances
+import           Test.QuickCheck.Monadic     as QCM
+import           Test.Tasty
+import           Test.Tasty.HUnit
+import           Test.Tasty.QuickCheck
 
+import           Control.Concurrent
+import           Control.Monad
 import qualified Data.ByteString             as SBS
 import qualified Data.ByteString.Builder     as BB
 import qualified Data.ByteString.FastBuilder as FB
@@ -12,6 +19,8 @@ import qualified Data.Text                   as ST
 import qualified Data.Text.Encoding          as STE
 import qualified Data.Text.Lazy              as LT
 import qualified Data.Text.Lazy.Encoding     as LTE
+import           System.Directory
+import           System.IO
 
 prop_toBuilder_String :: String -> Bool
 prop_toBuilder_String str = (LT.unpack . LTE.decodeUtf8 . FB.toLazyByteString $ toBuilder str) == str
@@ -28,5 +37,56 @@ prop_toBuilder_strict_ByteString str = FB.toStrictByteString (toBuilder str) == 
 prop_toBuilder_lazy_ByteString :: LBS.ByteString -> Bool
 prop_toBuilder_lazy_ByteString str = FB.toLazyByteString (toBuilder str) == str
 
+data TestShow = Foo | Bar | Baz deriving (Show)
+instance Arbitrary TestShow where
+  arbitrary = elements [Foo, Bar, Baz]
+
+prop_toBuilder_Show :: TestShow -> Bool
+prop_toBuilder_Show x = FB.toLazyByteString (toBuilder x) == (LTE.encodeUtf8 . LT.pack $ show x)
+
 prop_concat :: String -> String -> Bool
 prop_concat str0 str1 = (LT.unpack . LTE.decodeUtf8 . FB.toLazyByteString $ str0 <:> str1) == str0 <> str1
+
+instance Arbitrary LogLevel where
+  arbitrary = elements [LogDebug, LogInfo, LogNotice, LogWarn, LogError, LogCritical, LogAlert, LogEmergency]
+
+prop_broadcastLog :: [(LogLevel, String)] -> Property
+prop_broadcastLog msgs = monadicIO $ do
+  result <- run $ do
+    chan <- newLogChan
+    lq <- newLogQueue
+
+    (file0, handle0) <- openTempFile "/tmp" "caster_test_0.log"
+    let listener0 = handleListenerFlush defaultFormatter handle0
+    thread0 <- forkIO $ relayLog chan LogDebug listener0
+
+    (file1, handle1) <- openTempFile "/tmp" "caster_test_1.log"
+    let listener1 = handleListenerFlush defaultFormatter handle1
+    thread1 <- forkIO $ relayLog chan LogDebug listener1
+
+    (file2, handle2) <- openTempFile "/tmp" "caster_test_2.log"
+    let listener2 = handleListenerFlush defaultFormatter handle2
+    thread2 <- forkIO $ relayLog chan LogDebug listener2
+
+    threadb <- forkIO $ broadcastLog lq chan
+
+    mapM_ (uncurry $ logAs lq) msgs
+
+    log0 <- hGetContents handle0
+    log1 <- hGetContents handle1
+    log2 <- hGetContents handle2
+
+    let !res = log0 == log1 && log1 == log2
+
+    killThread thread0
+    killThread thread1
+    killThread thread2
+    killThread threadb
+
+    removeFile file0
+    removeFile file1
+    removeFile file2
+
+    pure res
+
+  QCM.assert result

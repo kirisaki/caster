@@ -49,9 +49,12 @@ test-suite test
                 base >= 4 && < 5
               , caster
               , bytestring
+              , directory
               , text
               , fast-builder
+              , QuickCheck
               , quickcheck-instances
+              , tasty-hunit
               , tasty
               , tasty-discover
               , tasty-quickcheck
