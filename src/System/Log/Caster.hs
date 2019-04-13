@@ -10,11 +10,11 @@ Stability   : experimental
 {-# LANGUAGE UndecidableInstances #-}
 module System.Log.Caster
   ( -- * Basics
-    LogMsg
+    LogMsg(..)
   , broadcastLog
-  , LogQueue
+  , LogQueue(..)
   , newLogQueue
-  , LogChan
+  , LogChan(..)
   , newLogChan
   , Formatter
   , Listener
@@ -41,6 +41,7 @@ module System.Log.Caster
   , ToBuilder(..)
   , fix
   , ($:)
+  , (<:>)
   ) where
 
 
@@ -51,6 +52,7 @@ import qualified Data.ByteString             as SBS
 import qualified Data.ByteString.Builder     as BB
 import qualified Data.ByteString.FastBuilder as FB
 import qualified Data.ByteString.Lazy        as LBS
+import           Data.Semigroup
 import qualified Data.Text                   as ST
 import qualified Data.Text.Encoding          as STE
 import qualified Data.Text.Lazy              as LT
@@ -104,7 +106,7 @@ infixr 6 <:>
 (<:>) :: (ToBuilder a, ToBuilder b) => a -> b -> FB.Builder
 a <:> b = toBuilder a <> toBuilder b
 
--- | Logging level. This is matched to syslog.
+-- |Log levels. These are matched to syslog.
 data LogLevel
   = LogDebug
   | LogInfo
@@ -193,7 +195,7 @@ logLevelToBuilder = \case
 formatTime :: UnixTime -> FB.Builder
 formatTime ut =
   let
-    ut' = FB.byteString . unsafePerformIO $ formatUnixTime "%Y-%m-$d %T" ut
+    ut' = FB.byteString . unsafePerformIO $ formatUnixTime "%Y-%m-d %T" ut
     utMilli = FB.string7 . tail . show $ utMicroSeconds ut `div` 1000 + 1000
   in
     ut' <> "." <> utMilli

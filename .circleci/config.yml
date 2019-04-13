@@ -1,0 +1,99 @@
+version: 2
+
+aliases:
+  - &cache_paths
+    paths:
+      - ~/.cabal/packagess
+      - ~/.cabal/store
+      - ~/.ghc/
+
+jobs:
+  test-8.6.3:
+    docker:
+      - image: haskell:8.6.3
+    steps:
+      - checkout
+      - setup_remote_docker
+      - restore_cache:
+          name: Restore cache
+          keys:
+            - ghc-8.6.3-{{ checksum "caster.cabal" }}
+      - run:
+          name: Install dependencies
+          command: cabal new-update
+      - run:
+          name: Install dependencies
+          command: cabal new-install
+      - run:
+          name: Install tasty-discover
+          command: cabal new-install tasty-discover
+      - run:
+          name: Run tests
+          command: cabal new-test
+      - save_cache:
+          name: Save packagess
+          key: ghc-8.6.3-{{ checksum "caster.cabal" }}
+          <<: *cache_paths
+  test-8.4.4:
+    docker:
+      - image: haskell:8.4.4
+    steps:
+      - checkout
+      - setup_remote_docker
+      - restore_cache:
+          name: Restore cache
+          keys:
+            - ghc-8.4.4-{{ checksum "caster.cabal" }}
+      - run:
+          name: Install dependencies
+          command: cabal new-update
+      - run:
+          name: Install dependencies
+          command: cabal new-install
+      - run:
+          name: Install tasty-discover
+          command: cabal new-install tasty-discover
+      - run:
+          name: Run tests
+          command: cabal new-test
+      - save_cache:
+          name: Save packagess
+          key: ghc-8.4.4-{{ checksum "caster.cabal" }}
+          <<: *cache_paths
+  test-8.2.2:
+    docker:
+      - image: haskell:8.2.2
+    steps:
+      - checkout
+      - setup_remote_docker
+      - restore_cache:
+          name: Restore cache
+          keys:
+            - ghc-8.2.2-{{ checksum "caster.cabal" }}
+      - run:
+          name: Install dependencies
+          command: cabal new-update
+      - run:
+          name: Install dependencies
+          command: cabal new-install
+      - run:
+          name: Install tasty-discover
+          command: cabal new-install tasty-discover
+      - run:
+          name: Run tests
+          command: cabal new-test
+      - save_cache:
+          name: Save packagess
+          key: ghc-8.2.2-{{ checksum "caster.cabal" }}
+          <<: *cache_paths
+
+
+
+workflows:
+  version: 2
+  test-check:
+    jobs:
+      - test-8.6.3
+      - test-8.4.4
+      - test-8.2.2
+
