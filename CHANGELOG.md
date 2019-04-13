@@ -1,5 +1,7 @@
-# Revision history for caster
+# Change Log
 
-## 0.0.1 -- YYYY-mm-dd
+## [0.0.1 -- 2019-04-13]
 
-* First version. Released on an unsuspecting world.
+### Added
+
+- Basic functions.
