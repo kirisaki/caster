@@ -22,10 +22,12 @@ module System.Log.Caster
   -- * Listeners
   , stdoutListener
   , stdoutListenerWith
+  , terminalListener
   , handleListener
   , handleListenerFlush
   -- * Formatter
   , defaultFormatter
+  , terminalFormatter
   -- * Log levels
   , LogLevel(..)
   , logAs
@@ -174,11 +176,44 @@ stdoutListenerWith f = handleListenerFlush f stdout
 stdoutListener :: Listener
 stdoutListener = stdoutListenerWith defaultFormatter
 
+-- | Terminal listener. Log levels are colored.
+terminalListener :: Listener
+terminalListener = stdoutListenerWith terminalFormatter
 
 -- | Default log formatter.
 defaultFormatter :: Formatter
 defaultFormatter (LogMsg lev ut str) =
   formatTime ut <> " - [" <> logLevelToBuilder lev <> "] " <> str <> "\n"
+
+-- | Formatter for term.
+--   It provides colored logs.
+terminalFormatter :: Formatter
+terminalFormatter = terminalFormatterWith
+                    "\ESC[32m"
+                    "\ESC[36m"
+                    "\ESC[4m\ESC[36m"
+                    "\ESC[4m\ESC[33m"
+                    "\ESC[4m\ESC[31m"
+                    "\ESC[1m\ESC[31m"
+                    "\ESC[1m\ESC[35m"
+                    "\ESC[5m\ESC[35m"
+
+-- | Formatter with specified colors for log levels.
+--   Parameters are just @FB.Builder@, so you can decorate as you like with ansi escaping.
+terminalFormatterWith :: FB.Builder -> FB.Builder -> FB.Builder -> FB.Builder -> FB.Builder -> FB.Builder -> FB.Builder -> FB.Builder -> Formatter
+terminalFormatterWith fDebug fInfo fNotice fWarn fError fCritical fAlert fEmergency (LogMsg lev ut str) =
+  formatTime ut <> " - " <> fmt <>  "[" <> logLevelToBuilder lev <> "]\ESC[0m " <> str <> "\n"
+  where
+    fmt = case lev of
+      LogDebug     -> fDebug
+      LogInfo      -> fInfo
+      LogNotice    -> fNotice
+      LogWarn      -> fWarn
+      LogError     -> fError
+      LogCritical  -> fCritical
+      LogAlert     -> fAlert
+      LogEmergency -> fEmergency
+
 
 logLevelToBuilder :: LogLevel -> FB.Builder
 logLevelToBuilder = \case
@@ -189,7 +224,8 @@ logLevelToBuilder = \case
   LogError -> "ERROR"
   LogCritical -> "CRITICAL"
   LogAlert -> "ALERT"
-  LogEmergency -> "EMERGEBCY"
+  LogEmergency -> "EMERGENCY"
+
 
 {-# NOINLINE formatTime #-}
 formatTime :: UnixTime -> FB.Builder

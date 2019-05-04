@@ -22,6 +22,9 @@ import qualified Data.Text.Lazy.Encoding     as LTE
 import           System.Directory
 import           System.IO
 
+logLevels :: [LogLevel]
+logLevels = [LogDebug, LogInfo, LogNotice, LogWarn, LogError, LogCritical, LogAlert, LogEmergency]
+
 prop_toBuilder_String :: String -> Bool
 prop_toBuilder_String str = (LT.unpack . LTE.decodeUtf8 . FB.toLazyByteString $ toBuilder str) == str
 
@@ -48,7 +51,7 @@ prop_concat :: String -> String -> Bool
 prop_concat str0 str1 = (LT.unpack . LTE.decodeUtf8 . FB.toLazyByteString $ str0 <:> str1) == str0 <> str1
 
 instance Arbitrary LogLevel where
-  arbitrary = elements [LogDebug, LogInfo, LogNotice, LogWarn, LogError, LogCritical, LogAlert, LogEmergency]
+  arbitrary = elements logLevels
 
 prop_broadcastLog :: [(LogLevel, String)] -> Property
 prop_broadcastLog msgs = monadicIO $ do
@@ -90,3 +93,21 @@ prop_broadcastLog msgs = monadicIO $ do
     pure res
 
   QCM.assert result
+
+unit_stdout :: IO ()
+unit_stdout = testListenrWith stdoutListener
+
+unit_terminal :: IO ()
+unit_terminal = testListenrWith terminalListener
+
+testListenrWith :: Listener -> IO ()
+testListenrWith l = do
+  chan <- newLogChan
+  lq <- newLogQueue
+  thread0 <- forkIO $ relayLog chan LogDebug l
+  threadb <- forkIO $ broadcastLog lq chan
+  forM_ logLevels (\l -> logAs lq l "nyaan")
+  threadDelay 100000
+  killThread thread0
+  killThread threadb
+
