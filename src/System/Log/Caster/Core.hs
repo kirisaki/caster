@@ -28,6 +28,7 @@ module System.Log.Caster.Core
   -- * Formatter
   , defaultFormatter
   , terminalFormatter
+  , terminalFormatterWith
   -- * Log levels
   , LogLevel(..)
   -- * Useful string class and operator

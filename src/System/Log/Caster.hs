@@ -27,6 +27,7 @@ module System.Log.Caster
   -- * Formatter
   , defaultFormatter
   , terminalFormatter
+  , terminalFormatterWith
   -- * Log levels
   , LogLevel(..)
   , logAs
