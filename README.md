@@ -76,8 +76,9 @@ someFunc lq = do
 
 The logger requires to be given `LogQueue`, 
 so functions which log need to take `LogQueue` as a parameter. 
-You can inject `LogQueue` with Reader Monad and so on, 
-but I recommend to use easily [Data\.Reflection](https://hackage.haskell.org/package/reflection).
+You can inject `LogQueue` with Reader Monad and so on.
+`System.Log.Caster.Monad` provides `MonadCaster` for ReaderT patteren.
+Another way, you can use [Data\.Reflection](https://hackage.haskell.org/package/reflection).
 
 
 ```haskell

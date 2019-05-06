@@ -1,5 +1,5 @@
 name:                caster
-version:             0.0.2.1
+version:             0.0.3.0
 synopsis:            Multicast, thread-safe, and fast logger.
 description:         Please see the README on GitHub at <https://github.com/kirisaki/caster#readme>
 homepage:            https://github.com/kirisaki/caster#readme
@@ -47,11 +47,13 @@ test-suite test
   hs-source-dirs:
                  test
   default-extensions: LambdaCase
+                    , FlexibleInstances
   build-depends:
                 base >= 4 && < 5
               , caster
               , bytestring
               , directory
+              , mtl
               , text
               , fast-builder
               , QuickCheck

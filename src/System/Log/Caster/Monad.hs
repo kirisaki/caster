@@ -58,22 +58,22 @@ class MonadIO m => MonadCaster m where
   debug = logAs LogDebug
 
   info :: ToBuilder s => s -> m ()
-  info = logAs LogDebug
+  info = logAs LogInfo
 
   notice :: ToBuilder s => s -> m ()
-  notice = logAs LogDebug
+  notice = logAs LogNotice
 
   warn :: ToBuilder s => s -> m ()
-  warn = logAs LogDebug
+  warn = logAs LogWarn
 
   err :: ToBuilder s => s -> m ()
-  err = logAs LogDebug
+  err = logAs LogError
 
   critical :: ToBuilder s => s -> m ()
-  critical = logAs LogDebug
+  critical = logAs LogCritical
 
   alert :: ToBuilder s => s -> m ()
-  alert = logAs LogDebug
+  alert = logAs LogAlert
 
   emergency :: ToBuilder s => s -> m ()
-  emergency = logAs LogDebug
+  emergency = logAs LogEmergency
