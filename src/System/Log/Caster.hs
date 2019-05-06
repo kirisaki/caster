@@ -162,7 +162,7 @@ relayLog (LogChan bchan) logLevel listener = do
 
 -- | Make @Listener@ from @Handle@
 handleListener :: Formatter -> Handle -> Listener
-handleListener f h = FB.hPutBuilder h . f
+handleListener f h = FB.hPutBuilderWith h 4096 4096 . f
 
 -- | Make @Listener@ flushing buffer after getting @LogMsg@
 handleListenerFlush :: Formatter -> Handle -> Listener
