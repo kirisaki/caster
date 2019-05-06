@@ -9,6 +9,7 @@ import           Test.Tasty.HUnit
 import           Test.Tasty.QuickCheck
 
 import           Control.Concurrent
+import           Control.Concurrent.STM
 import           Control.Monad
 import qualified Data.ByteString             as SBS
 import qualified Data.ByteString.Builder     as BB
@@ -57,7 +58,8 @@ prop_broadcastLog :: [(LogLevel, String)] -> Property
 prop_broadcastLog msgs = monadicIO $ do
   result <- run $ do
     chan <- newLogChan
-    lq <- newLogQueue
+    LogQueue lq' <- newLogQueue
+    let lq = LogQueue lq'
 
     (file0, handle0) <- openTempFile "/tmp" "caster_test_0.log"
     let listener0 = handleListenerFlush defaultFormatter handle0
@@ -74,10 +76,15 @@ prop_broadcastLog msgs = monadicIO $ do
     threadb <- forkIO $ broadcastLog lq chan
 
     mapM_ (uncurry $ logAs lq) msgs
+    atomically $ wait lq'
 
-    log0 <- hGetContents handle0
-    log1 <- hGetContents handle1
-    log2 <- hGetContents handle2
+    hClose handle0
+    hClose handle1
+    hClose handle2
+
+    log0 <- SBS.readFile file0
+    log1 <- SBS.readFile file1
+    log2 <- SBS.readFile file2
 
     let !res = log0 == log1 && log1 == log2
 
@@ -86,13 +93,17 @@ prop_broadcastLog msgs = monadicIO $ do
     killThread thread2
     killThread threadb
 
+
     removeFile file0
     removeFile file1
     removeFile file2
 
     pure res
-
   QCM.assert result
+  where
+    wait q = tryPeekTQueue q >>= \case
+      Just _ -> wait q
+      Nothing -> pure ()
 
 unit_stdout :: IO ()
 unit_stdout = testListenrWith stdoutListener
