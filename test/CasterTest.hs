@@ -2,6 +2,8 @@
 module CasterTest where
 
 import           System.Log.Caster
+import qualified System.Log.Caster.Monad     as CM
+
 import           Test.QuickCheck.Instances
 import           Test.QuickCheck.Monadic     as QCM
 import           Test.Tasty
@@ -11,6 +13,8 @@ import           Test.Tasty.QuickCheck
 import           Control.Concurrent
 import           Control.Concurrent.STM
 import           Control.Monad
+import           Control.Monad.Reader        (MonadReader (..), ReaderT,
+                                              runReaderT)
 import qualified Data.ByteString             as SBS
 import qualified Data.ByteString.Builder     as BB
 import qualified Data.ByteString.FastBuilder as FB
@@ -121,4 +125,27 @@ testListenrWith l = do
   threadDelay 100000
   killThread thread0
   killThread threadb
+
+
+instance CM.MonadCaster (ReaderT LogQueue IO) where
+  getLogQueue = ask
+
+unit_monad :: IO ()
+unit_monad = do
+  chan <- newLogChan
+  lq <- newLogQueue
+  thread0 <- forkIO $ relayLog chan LogDebug stdoutListener
+  flip runReaderT lq $ do
+    CM.debug "mona"
+    CM.info "mona"
+    CM.notice "mona"
+    CM.warn "mona"
+    CM.err "mona"
+    CM.critical "mona"
+    CM.alert "mona"
+    CM.emergency "mona"
+  threadb <- forkIO $ broadcastLog lq chan
+  threadDelay 100001
+  killThread threadb
+  killThread thread0
 
