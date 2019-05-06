@@ -1,5 +1,5 @@
 name:                caster
-version:             0.0.2.0
+version:             0.0.2.1
 synopsis:            Multicast, thread-safe, and fast logger.
 description:         Please see the README on GitHub at <https://github.com/kirisaki/caster#readme>
 homepage:            https://github.com/kirisaki/caster#readme
@@ -54,7 +54,7 @@ test-suite test
               , fast-builder
               , QuickCheck
               , quickcheck-instances
-              , stm >= 2.5.0.0
+              , stm
               , tasty-hunit
               , tasty
               , tasty-discover
