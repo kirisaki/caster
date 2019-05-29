@@ -8,16 +8,16 @@ aliases:
       - ~/.ghc/
 
 jobs:
-  test-8.6.3:
+  test-8.6.5:
     docker:
-      - image: haskell:8.6.3
+      - image: haskell:8.6.5
     steps:
       - checkout
       - setup_remote_docker
       - restore_cache:
           name: Restore cache
           keys:
-            - ghc-8.6.3-{{ checksum "caster.cabal" }}
+            - ghc-8.6.5-{{ checksum "caster.cabal" }}
       - run:
           name: Install dependencies
           command: cabal new-update
@@ -32,7 +32,7 @@ jobs:
           command: cabal new-test
       - save_cache:
           name: Save packagess
-          key: ghc-8.6.3-{{ checksum "caster.cabal" }}
+          key: ghc-8.6.5-{{ checksum "caster.cabal" }}
           <<: *cache_paths
   test-8.4.4:
     docker:
@@ -93,7 +93,7 @@ workflows:
   version: 2
   test-check:
     jobs:
-      - test-8.6.3
+      - test-8.6.5
       - test-8.4.4
       - test-8.2.2
 
